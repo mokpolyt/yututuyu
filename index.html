@@ -123,7 +123,6 @@
 <body>
 <header>
   <div class="logo" onclick="goHome()"><i></i>VideoTube</div>
-  <button class="auth" id="authBtn" type="button">Sign in</button>
   <form id="f">
     <input id="q" placeholder="Paste a YouTube link (or type to search on YouTube)" autocomplete="off" autofocus>
     <button class="go" type="submit">▶ Play</button>
@@ -212,19 +211,7 @@
   </form>
 </dialog>
 
-<dialog id="ldlg">
-  <form class="lform" id="lf" method="dialog">
-    <h3>Sign in to edit</h3>
-    <p>Only the site owner can change videos. Visitors can watch without signing in.</p>
-    <input id="l_email" type="email" placeholder="Email" autocomplete="email" required>
-    <input id="l_pass" type="password" placeholder="Password" autocomplete="current-password" required>
-    <div class="note" id="l_note"></div>
-    <div class="foot">
-      <button class="btn" type="button" id="l_cancel">Cancel</button>
-      <button class="btn red" type="submit">Sign in</button>
-    </div>
-  </form>
-</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -483,7 +470,7 @@ F('e_del').onclick = () => {
   if(REMOTE){
     const d = DEMO[editIdx];
     sb.from('videos').delete().eq('id', d.rid).then(({error}) => {
-      if(error){ note('Could not delete: ' + error.message); return; }
+      if(error){ note('Could not delete: ' + error.message + ' (check Supabase anon DELETE policy)'); return; }
       DEMO.splice(editIdx, 1); renderDemo(); dlg.close();
     });
     return;
@@ -540,7 +527,7 @@ async function remoteLoad(){
   const {data, error} = await sb.from('videos').select('*').order('position', {ascending:true});
   if(error){ $('#msg').textContent = 'Database error: ' + error.message; return; }
   if(data.length) DEMO = data.map(fromRow);
-  else { DEMO = defaults(); if(signedIn) await remoteSeed(); }
+  else { DEMO = defaults(); await remoteSeed(); }
   renderDemo();
 }
 async function saveRemote(nd, idx){
@@ -551,34 +538,17 @@ async function saveRemote(nd, idx){
     const pos = DEMO.length ? Math.min(...DEMO.map(x => x.position ?? 0)) - 1 : 0;
     res = await sb.from('videos').insert(toRow(nd, pos)).select().single();
   }
-  if(res.error){ note('Could not save: ' + res.error.message + ' (are you signed in?)'); return; }
+  if(res.error){ note('Could not save: ' + res.error.message + ' (check Supabase anon INSERT/UPDATE policies)'); return; }
   const row = fromRow(res.data);
   if(idx >= 0) DEMO[idx] = row; else DEMO.unshift(row);
   renderDemo(); dlg.close();
 }
-async function refreshAuth(){
-  const {data} = await sb.auth.getSession();
-  signedIn = !!(data && data.session);
-  document.body.classList.toggle('can-edit', signedIn);
-  $('#authBtn').textContent = signedIn ? 'Sign out' : 'Sign in';
-}
-if(!REMOTE){
-  document.body.classList.add('can-edit');
-} else {
+// Public editing mode: anyone who can open this page can add, edit and delete videos.
+// Supabase Row Level Security must also allow anon SELECT/INSERT/UPDATE/DELETE.
+document.body.classList.add('can-edit');
+if(REMOTE){
   document.body.classList.add('remote');
-  $('#authBtn').onclick = async () => {
-    if(signedIn){ await sb.auth.signOut(); await refreshAuth(); await remoteLoad(); }
-    else { F('l_note').textContent = ''; F('ldlg').showModal(); }
-  };
-  F('l_cancel').onclick = () => F('ldlg').close();
-  F('lf').addEventListener('submit', async e => {
-    e.preventDefault();
-    const {error} = await sb.auth.signInWithPassword({email:F('l_email').value.trim(), password:F('l_pass').value});
-    if(error){ F('l_note').textContent = error.message; return; }
-    F('l_pass').value = ''; F('ldlg').close();
-    await refreshAuth(); await remoteLoad();
-  });
-  (async () => { await refreshAuth(); await remoteLoad(); })();
+  (async () => { await remoteLoad(); })();
 }
 
 // ---------- Events ----------
