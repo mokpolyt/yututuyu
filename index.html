@@ -523,8 +523,8 @@ F('rstBtn').onclick = async () => {
 // ---------- Supabase (optional) ----------
 // Fill these two in to store videos in your Supabase database instead of this browser.
 // Leave them empty to keep using local (browser-only) storage.
-const SUPABASE_URL = '';       // e.g. https://abcdxyz.supabase.co
-const SUPABASE_ANON_KEY = '';  // Project Settings → API → anon / publishable key (safe to publish)
+const SUPABASE_URL = "https://gjyeknwtoofpuvoaftfj.supabase.co";       // e.g. https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY = "sb_publishable_HBf14rn-fWP8AZ_OaLFfag_V6qNKjk5";  // Project Settings → API → anon / publishable key (safe to publish)
 const REMOTE = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
 const sb = REMOTE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let signedIn = false;
